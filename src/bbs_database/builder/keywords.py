@@ -44,7 +44,11 @@ def compute_keywords(boards: list[BoardTokens]) -> KeywordsResult:
         terms_here = set(declared_tf[b.board_node_id]) | set(content_tf[b.board_node_id])
         for t in terms_here:
             df[t] += 1
-    idf = {t: math.log(n / (1 + d)) for t, d in df.items()}
+    # Spec formula log(N/(1+DF)) goes non-positive when DF >= N (very common terms).
+    # Clamp at 0 so common terms contribute 0 weight rather than negative — this
+    # preserves the "common terms have no discrimination power" intent without
+    # the perverse penalty of negative TF-IDF.
+    idf = {t: max(0.0, math.log(n / (1 + d))) for t, d in df.items()}
 
     edges: list[tuple[int, str, float, float, str]] = []
     vectors: dict[int, dict[str, float]] = {}
@@ -58,8 +62,8 @@ def compute_keywords(boards: list[BoardTokens]) -> KeywordsResult:
         vec: dict[str, float] = {}
         sq_sum = 0.0
         for term in terms_union:
-            td = abs(dtf.get(term, 0) * idf[term])
-            tc = abs(ctf.get(term, 0) * idf[term])
+            td = dtf.get(term, 0) * idf[term]
+            tc = ctf.get(term, 0) * idf[term]
             total = td + tc
             if total <= 0:
                 continue
