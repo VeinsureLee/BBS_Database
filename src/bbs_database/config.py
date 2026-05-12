@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
@@ -17,7 +17,7 @@ class BuildConfig:
     seed_top_terms_for_cooccur: int
     cooccur_min_df: int
     content_signal_strength_full: int
-    _root: Path | None = None
+    _root: Path | None = field(default=None, repr=False, compare=False, hash=False)
 
     @property
     def stopwords_path(self) -> Path:
@@ -32,7 +32,7 @@ class Config:
     build: BuildConfig
     routing: dict
     search: dict
-    _root: Path | None = None
+    _root: Path | None = field(default=None, repr=False, compare=False, hash=False)
 
     @property
     def data_root_path(self) -> Path:
