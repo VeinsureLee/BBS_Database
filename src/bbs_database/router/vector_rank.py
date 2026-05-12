@@ -48,12 +48,10 @@ def cosine_top_k(
     mat = np.stack([v for _, v in items_list])
     qn = float(np.linalg.norm(query))
     mn = np.linalg.norm(mat, axis=1)
-    dots = mat @ query
     denom = qn * mn
     safe = denom > 0
     cos = np.zeros(len(items_list), dtype=np.float64)
     if qn > 0:
-        cos[safe] = dots[safe] / denom[safe]
-    # Primary sort: cosine descending; tiebreaker: dot product descending (stable).
-    order = np.lexsort((-dots, -cos))[:k]
+        cos[safe] = (mat[safe] @ query) / denom[safe]
+    order = np.argsort(-cos, kind="stable")[:k]
     return [(keys[i], float(cos[i])) for i in order]

@@ -66,16 +66,18 @@ def test_load_thread_vectors_no_filter_returns_all(tmp_path):
         cx.close()
 
 
-def test_cosine_top_k_returns_sorted_indices_with_scores():
+def test_cosine_top_k_returns_top_k_by_cosine():
+    # Use non-parallel vectors so cosine values are distinct and ordering is unambiguous.
     q = np.array([1.0, 0.0, 0.0] + [0.0] * 1021, dtype=np.float32)
     items = [
-        ("a", np.array([0.5, 0.0, 0.0] + [0.0] * 1021, dtype=np.float32)),
-        ("b", np.array([1.0, 0.0, 0.0] + [0.0] * 1021, dtype=np.float32)),
-        ("c", np.array([0.0, 1.0, 0.0] + [0.0] * 1021, dtype=np.float32)),
+        ("strong", np.array([1.0, 0.0, 0.0] + [0.0] * 1021, dtype=np.float32)),  # cos 1.0
+        ("medium", np.array([1.0, 1.0, 0.0] + [0.0] * 1021, dtype=np.float32)),  # cos ~0.707
+        ("orthogonal", np.array([0.0, 1.0, 0.0] + [0.0] * 1021, dtype=np.float32)),  # cos 0
     ]
     out = cosine_top_k(q, items, k=2)
-    assert [k for k, _ in out] == ["b", "a"]
+    assert [k for k, _ in out] == ["strong", "medium"]
     assert math.isclose(out[0][1], 1.0, abs_tol=1e-6)
+    assert math.isclose(out[1][1], 1.0 / math.sqrt(2), abs_tol=1e-6)
 
 
 def test_cosine_top_k_handles_zero_vectors():
