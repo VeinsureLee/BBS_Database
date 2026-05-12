@@ -1,0 +1,31 @@
+data_root: "./data/crawler.db"
+index_db: "./data/index.db"
+site_key: "school-bbs"
+
+build:
+  min_token_length: 2
+  stopwords_file: "./config/stopwords_zh.txt"
+  pmi_threshold: 0.3
+  similar_top_n: 5
+  seed_top_terms_for_cooccur: 50
+  cooccur_min_df: 2
+  content_signal_strength_full: 200
+
+routing:
+  alpha_declared: 1.0
+  alpha_content: 1.5
+  alpha_entity: 2.0
+  alpha_activity: 0.1
+  k1_seeds: 5
+  seed_top_terms: 20
+  m_expansion: 10
+  beta_expansion: 0.5
+  k_final: 8
+
+search:
+  gamma_board: 0.4
+  gamma_fts: 0.5
+  gamma_recency: 0.1
+  recency_tau_days: 180
+  per_board_limit: 20
+  total_limit: 50
