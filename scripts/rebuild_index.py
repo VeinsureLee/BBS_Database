@@ -6,7 +6,6 @@ import argparse
 import sys
 from pathlib import Path
 
-# Allow running this script directly without `pip install -e .`
 HERE = Path(__file__).resolve().parent
 SRC = HERE.parent / "src"
 if str(SRC) not in sys.path:
@@ -15,12 +14,21 @@ if str(SRC) not in sys.path:
 from bbs_database.builder.pipeline import build_index  # noqa: E402
 from bbs_database.config import load_config  # noqa: E402
 
+try:
+    from dotenv import load_dotenv  # noqa: E402
+    load_dotenv()
+except ImportError:
+    pass
 
-def main(argv: list[str] | None = None) -> int:
+
+def main(argv=None):
     parser = argparse.ArgumentParser(description="Rebuild BBS_Database index.db")
-    parser.add_argument("--full", action="store_true", help="Drop and rebuild from scratch (P1 default).")
+    parser.add_argument("--full", action="store_true",
+                        help="Drop and rebuild from scratch (P1+P2 default).")
     parser.add_argument("--incremental", action="store_true", help="Reserved for P3.")
     parser.add_argument("--boards", help="Reserved for P3.")
+    parser.add_argument("--no-embed", action="store_true",
+                        help="Skip vector embedding phases (classical only).")
     parser.add_argument(
         "--config",
         default=str((HERE.parent / "config" / "routing.yaml").resolve()),
@@ -34,7 +42,13 @@ def main(argv: list[str] | None = None) -> int:
 
     cfg_path = Path(args.config).resolve()
     cfg = load_config(cfg_path, root=cfg_path.parent.parent)
-    print(f"building index → {cfg.index_db_path}")
+    if args.no_embed:
+        # Override cfg.embed.enabled = False
+        from dataclasses import replace
+        cfg = replace(cfg, embed=replace(cfg.embed, enabled=False))
+        print("building index (classical only, --no-embed) →", cfg.index_db_path)
+    else:
+        print("building index →", cfg.index_db_path)
     build_index(cfg)
     print("done")
     return 0
