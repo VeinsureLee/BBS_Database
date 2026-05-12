@@ -9,9 +9,21 @@ from typing import Iterator
 
 
 def open_ro(path: Path | str) -> sqlite3.Connection:
-    """Open a SQLite file in strict read-only mode via URI."""
+    """Open a SQLite file strictly read-only without creating any sidecar files.
+
+    `immutable=1` tells SQLite to assume the file is unchanging — it skips
+    the WAL protocol entirely, so reading a WAL-mode crawler db does NOT
+    produce `-shm`/`-wal` files in the data directory.
+
+    Trade-off: a process holding this connection won't see commits a
+    concurrent writer makes. For BBS_Database that's intentional — the
+    builder is a one-shot offline job and the crawler is not running.
+    If a future read path needs to see live updates, drop `immutable=1`
+    for that caller and accept the sidecar files for the duration of
+    that connection.
+    """
     p = Path(path).as_posix()
-    return sqlite3.connect(f"file:{p}?mode=ro", uri=True)
+    return sqlite3.connect(f"file:{p}?mode=ro&immutable=1", uri=True)
 
 
 @dataclass

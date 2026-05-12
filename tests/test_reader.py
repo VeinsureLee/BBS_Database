@@ -41,3 +41,37 @@ def test_open_ro_is_readonly(crawler_dataset):
             pass
     finally:
         cx.close()
+
+
+def test_open_ro_does_not_create_wal_or_shm_sidecars(crawler_dataset, tmp_path):
+    """Regression: reading a WAL-mode db must not leave -shm/-wal files behind."""
+    import sqlite3
+
+    # Build a WAL-mode db (mimicking crawler's PRAGMA journal_mode = WAL).
+    wal_db = tmp_path / "wal_mode.db"
+    w = sqlite3.connect(wal_db)
+    w.execute("PRAGMA journal_mode = WAL")
+    w.execute("CREATE TABLE t (x INTEGER)")
+    w.execute("INSERT INTO t VALUES (1)")
+    w.commit()
+    w.close()
+
+    # Sanity: WAL writer may have left sidecars; clean them so we test reader cleanly.
+    for suffix in ("-shm", "-wal"):
+        sidecar = wal_db.with_name(wal_db.name + suffix)
+        if sidecar.exists():
+            sidecar.unlink()
+    assert not wal_db.with_name(wal_db.name + "-shm").exists()
+    assert not wal_db.with_name(wal_db.name + "-wal").exists()
+
+    # Read via open_ro — must not regenerate sidecars.
+    cx = open_ro(wal_db)
+    try:
+        rows = list(cx.execute("SELECT x FROM t"))
+        assert rows == [(1,)]
+    finally:
+        cx.close()
+    assert not wal_db.with_name(wal_db.name + "-shm").exists(), \
+        "open_ro must not create -shm sidecar"
+    assert not wal_db.with_name(wal_db.name + "-wal").exists(), \
+        "open_ro must not create -wal sidecar"
