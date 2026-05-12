@@ -2,7 +2,7 @@ import sqlite3
 
 from bbs_database.builder.schema import (
     ALL_DDL,
-    META_INSERTS,
+    meta_inserts,
     SCHEMA_VERSION,
     ALGORITHM_VERSION,
 )
@@ -41,7 +41,7 @@ def test_meta_inserts_set_versions(tmp_path):
     try:
         for stmt in ALL_DDL:
             cx.execute(stmt)
-        for sql, params in META_INSERTS:
+        for sql, params in meta_inserts("2026-05-12T00:00:00Z"):
             cx.execute(sql, params)
         cx.commit()
         rows = dict(cx.execute("SELECT key, value FROM _meta"))
@@ -49,6 +49,7 @@ def test_meta_inserts_set_versions(tmp_path):
         cx.close()
     assert rows["schema_version"] == SCHEMA_VERSION
     assert rows["algorithm_version"] == ALGORITHM_VERSION
+    assert rows["built_at"] == "2026-05-12T00:00:00Z"
 
 
 def test_cooccur_check_constraint_rejects_unordered(tmp_path):

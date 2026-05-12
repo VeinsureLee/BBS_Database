@@ -118,4 +118,3 @@ def meta_inserts(built_at: str) -> list[tuple[str, tuple]]:
     ]
 
 
-META_INSERTS = meta_inserts("1970-01-01T00:00:00Z")
