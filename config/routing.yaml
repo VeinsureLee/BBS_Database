@@ -24,6 +24,7 @@ routing:
   delta_vector_base: 0.5
   delta_vector_cold: 0.7
   delta_signal_threshold: 0.5
+  pmi_threshold: 0.3
 
 search:
   gamma_vector: 0.6
