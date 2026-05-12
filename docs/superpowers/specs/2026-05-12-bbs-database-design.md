@@ -868,6 +868,22 @@ CI（GitHub Actions）：
 - 可复现（同样输入 → 同样输出）
 - 无外部 API 调用 → 无网络依赖、无 API key 管理负担
 
+### 6.7 P1 基线（2026-05-12）
+
+首次跑通 builder 后，在 BBS_Crawler `.data` 全量（10 forums / 259 boards）上跑 `scripts/eval_self_routing.py`：
+
+| 指标 | 值 | 备注 |
+|---|---|---|
+| self-name top-1 | 92.3% (239/259) | 用 board.name 作 query 命中自己 rank-1 |
+| self-name top-3 | **99.6% (258/259)** | spec §6.4 (a) 目标 85%，远超 |
+| entity top-5 | **99.4% (155/156)** | spec §6.4 (b)：每个 (entity, board-with-max-thread-count) 对，用 entity 作 query 命中目标 board top-5 |
+
+仅有的 misses：
+- name miss: board id 110「北邮今周」——名字三字里含高频通用词导致直接打分被 activity 项盖过
+- entity miss: 「精华区」(place) → board 73——`place` 类型的实体被 jieba 误识别（"精华区"是版面分类用语而非地名），不影响主路由
+
+**何时重新 baseline：** 改 IDF 公式、改 entity 抽取规则、扩 stopword、调 α 权重——任何一项改动后跑一次 `eval_self_routing.py --json`，把数字 commit 进本节。
+
 ---
 
 ## 与上下游的边界
