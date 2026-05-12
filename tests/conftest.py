@@ -211,11 +211,14 @@ class FakeEmbedClient:
         return out
 
     def _hash_vec(self, text: str) -> list[float]:
+        # Use the digest as a seed for a deterministic RNG, then draw `dimensions`
+        # float32 samples. (The prior approach interpreted raw bytes as float32
+        # bits, which both produced a 4× larger vector than intended AND risked
+        # NaN/Inf payloads from random bit patterns.)
         h = hashlib.sha256(text.encode("utf-8")).digest()
-        bytes_needed = self.dimensions * 4
-        repeated = (h * (bytes_needed // len(h) + 1))[:bytes_needed]
-        arr = np.frombuffer(repeated, dtype=np.uint8).astype(np.float32)
-        arr = (arr - 128.0) / 128.0
+        seed = int.from_bytes(h[:8], "big")
+        rng = np.random.default_rng(seed)
+        arr = rng.standard_normal(self.dimensions).astype(np.float32)
         return arr.tolist()
 
 
