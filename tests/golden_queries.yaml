@@ -1,0 +1,23 @@
+# Hand-labeled queries → expected board path substring.
+# Used by tests/test_golden.py with @pytest.mark.smoke (skipped without DASHSCOPE_API_KEY).
+# Add more rows as we learn what queries the agent actually issues.
+- query: "兼职招聘"
+  expect_path_contains: "兼职"
+- query: "情感困扰"
+  expect_path_contains: "情感"
+- query: "考试复习"
+  expect_path_contains: "考试"
+- query: "出二手书"
+  expect_path_contains: "二手"
+- query: "找房子"
+  expect_path_contains: "租"
+- query: "电脑配置推荐"
+  expect_path_contains: "电脑"
+- query: "求职面试经验"
+  expect_path_contains: "求职"
+- query: "校园活动"
+  expect_path_contains: "校园"
+- query: "毕业论文求助"
+  expect_path_contains: "毕"
+- query: "游戏开黑"
+  expect_path_contains: "游戏"

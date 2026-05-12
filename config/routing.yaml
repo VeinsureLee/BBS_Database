@@ -21,11 +21,28 @@ routing:
   m_expansion: 10
   beta_expansion: 0.5
   k_final: 8
+  delta_vector_base: 0.5
+  delta_vector_cold: 0.7
+  delta_signal_threshold: 0.5
+  pmi_threshold: 0.3
 
 search:
-  gamma_board: 0.4
-  gamma_fts: 0.5
+  gamma_vector: 0.6
+  gamma_board: 0.3
   gamma_recency: 0.1
   recency_tau_days: 180
   per_board_limit: 20
   total_limit: 50
+
+embed:
+  enabled: true
+  provider: dashscope
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  model: text-embedding-v3
+  dimensions: 1024
+  api_key_env: DASHSCOPE_API_KEY
+  batch_size: 25
+  max_input_chars: 2000
+  max_retries: 3
+  request_timeout_s: 30
+  pinned_only_at_full_build: true

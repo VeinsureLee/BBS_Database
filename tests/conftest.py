@@ -177,3 +177,51 @@ def crawler_dataset(tmp_path: Path):
             20: {"name": "悄悄话", "forum_db_file": "forums/anonymous.db", "path": "匿名 > 悄悄话"},
         },
     }
+
+
+import hashlib
+
+import numpy as np
+
+
+class FakeEmbedClient:
+    """Deterministic fake EmbedClient for unit tests.
+
+    By default produces hash-based vectors (same text → same vector).
+    Tests can call .set(text, vec) to override specific texts with controlled vectors.
+    """
+
+    def __init__(self, dimensions: int = 1024):
+        self.dimensions = dimensions
+        self._overrides: dict[str, list[float]] = {}
+        self.call_log: list[list[str]] = []
+
+    def set(self, text: str, vec: list[float]) -> None:
+        assert len(vec) == self.dimensions
+        self._overrides[text] = vec
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        self.call_log.append(list(texts))
+        out: list[list[float]] = []
+        for t in texts:
+            if t in self._overrides:
+                out.append(list(self._overrides[t]))
+            else:
+                out.append(self._hash_vec(t))
+        return out
+
+    def _hash_vec(self, text: str) -> list[float]:
+        # Use the digest as a seed for a deterministic RNG, then draw `dimensions`
+        # float32 samples. (The prior approach interpreted raw bytes as float32
+        # bits, which both produced a 4× larger vector than intended AND risked
+        # NaN/Inf payloads from random bit patterns.)
+        h = hashlib.sha256(text.encode("utf-8")).digest()
+        seed = int.from_bytes(h[:8], "big")
+        rng = np.random.default_rng(seed)
+        arr = rng.standard_normal(self.dimensions).astype(np.float32)
+        return arr.tolist()
+
+
+@pytest.fixture
+def fake_embed_api():
+    return FakeEmbedClient(dimensions=1024)

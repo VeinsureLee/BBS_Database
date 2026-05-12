@@ -4,6 +4,8 @@ docs/结构说明/
 node_modules/
 dist/
 
+.env
+
 # Python
 .venv/
 venv/

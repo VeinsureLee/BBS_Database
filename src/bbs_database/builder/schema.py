@@ -92,6 +92,31 @@ CREATE TABLE fts_map (
 
 DDL_FTS_MAP_IDX = "CREATE INDEX idx_fts_map_board ON fts_map(board_node_id)"
 
+DDL_BOARD_VECTOR = """
+CREATE TABLE board_vector (
+  board_node_id  INTEGER PRIMARY KEY,
+  vec            BLOB NOT NULL,
+  source_text    TEXT NOT NULL,
+  embed_model    TEXT NOT NULL,
+  built_at       TEXT NOT NULL
+)
+"""
+
+DDL_THREAD_VECTOR = """
+CREATE TABLE thread_vector (
+  rowid          INTEGER PRIMARY KEY,
+  board_node_id  INTEGER NOT NULL,
+  thread_id      INTEGER NOT NULL,
+  forum_db_file  TEXT NOT NULL,
+  vec            BLOB NOT NULL,
+  embed_model    TEXT NOT NULL,
+  built_at       TEXT NOT NULL,
+  UNIQUE (forum_db_file, thread_id)
+)
+"""
+
+DDL_TV_BOARD_IDX = "CREATE INDEX idx_tv_board ON thread_vector(board_node_id)"
+
 ALL_DDL = [
     DDL_META,
     DDL_FORUM_PROFILE,
@@ -107,6 +132,9 @@ ALL_DDL = [
     DDL_FTS,
     DDL_FTS_MAP,
     DDL_FTS_MAP_IDX,
+    DDL_BOARD_VECTOR,
+    DDL_THREAD_VECTOR,
+    DDL_TV_BOARD_IDX,
 ]
 
 
