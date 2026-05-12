@@ -26,11 +26,11 @@ def _direct_scores(
     cx: sqlite3.Connection,
     query_terms: list[str],
     *,
+    alpha_declared: float,
+    alpha_content: float,
+    alpha_entity: float,
+    alpha_activity: float,
     entity: tuple[str, str] | None = None,
-    alpha_declared: float = 1.0,
-    alpha_content: float = 1.5,
-    alpha_entity: float = 2.0,
-    alpha_activity: float = 0.1,
 ) -> list[tuple[int, float]]:
     if not query_terms and entity is None:
         return []
@@ -80,6 +80,13 @@ def main(argv: list[str] | None = None) -> int:
     tok = Tokenizer(stopwords=load_stopwords(cfg.build.stopwords_path),
                     min_length=cfg.build.min_token_length)
 
+    alphas = dict(
+        alpha_declared=float(cfg.routing.get("alpha_declared", 1.0)),
+        alpha_content=float(cfg.routing.get("alpha_content", 1.5)),
+        alpha_entity=float(cfg.routing.get("alpha_entity", 2.0)),
+        alpha_activity=float(cfg.routing.get("alpha_activity", 0.1)),
+    )
+
     boards = list(cx.execute("SELECT board_node_id, name FROM forum_profile"))
     n_top1 = n_top3 = 0
     misses_name: list[tuple[int, str]] = []
@@ -87,7 +94,7 @@ def main(argv: list[str] | None = None) -> int:
         terms = tok.cut(name)
         if not terms:
             continue
-        ranking = _direct_scores(cx, terms)
+        ranking = _direct_scores(cx, terms, **alphas)
         ranked_ids = [b for b, _ in ranking]
         if ranked_ids[:1] == [bid]:
             n_top1 += 1
@@ -112,7 +119,7 @@ def main(argv: list[str] | None = None) -> int:
     for (ent, ty), pairs in by_entity.items():
         pairs.sort(key=lambda x: -x[1])
         target_board = pairs[0][0]
-        ranking = _direct_scores(cx, [ent], entity=(ent, ty))
+        ranking = _direct_scores(cx, [ent], entity=(ent, ty), **alphas)
         ranked_ids = [b for b, _ in ranking]
         n_entity_total += 1
         if target_board in ranked_ids[:5]:

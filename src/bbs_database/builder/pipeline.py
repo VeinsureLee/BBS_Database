@@ -23,8 +23,7 @@ from bbs_database.builder import (
 )
 from bbs_database.builder.schema import (
     ALL_DDL,
-    ALGORITHM_VERSION,
-    SCHEMA_VERSION,
+    meta_inserts,
 )
 from bbs_database.reader import iter_boards, iter_threads
 
@@ -143,9 +142,8 @@ def build_index(cfg: Config) -> None:
     try:
         now = datetime.now(timezone.utc).isoformat()
         with cx:
-            cx.execute("INSERT INTO _meta(key, value) VALUES (?,?)", ("schema_version", SCHEMA_VERSION))
-            cx.execute("INSERT INTO _meta(key, value) VALUES (?,?)", ("algorithm_version", ALGORITHM_VERSION))
-            cx.execute("INSERT INTO _meta(key, value) VALUES (?,?)", ("built_at", now))
+            for sql, params in meta_inserts(now):
+                cx.execute(sql, params)
 
             for rec in board_records:
                 bid = rec["board_node_id"]
