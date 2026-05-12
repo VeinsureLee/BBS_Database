@@ -10,18 +10,9 @@ from __future__ import annotations
 import os
 
 from bbs_database.config import EmbedConfig
+from bbs_database.router.errors import EmbedAPIError, EmbedConfigError
 
-
-class BBSDatabaseError(Exception):
-    code: str = ""
-
-
-class EmbedConfigError(BBSDatabaseError):
-    code = "embed_config_error"
-
-
-class EmbedAPIError(BBSDatabaseError):
-    code = "embed_api_error"
+__all__ = ["EmbedClient", "EmbedAPIError", "EmbedConfigError"]
 
 
 class EmbedClient:
