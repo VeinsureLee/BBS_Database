@@ -879,8 +879,8 @@ CI（GitHub Actions）：
 | entity top-5 | **99.4% (155/156)** | spec §6.4 (b)：每个 (entity, board-with-max-thread-count) 对，用 entity 作 query 命中目标 board top-5 |
 
 仅有的 misses：
-- name miss: board id 110「北邮今周」——名字三字里含高频通用词导致直接打分被 activity 项盖过
-- entity miss: 「精华区」(place) → board 73——`place` 类型的实体被 jieba 误识别（"精华区"是版面分类用语而非地名），不影响主路由
+- name miss: board id 110——板面名（三字）里含高频通用词，导致直接打分被 activity 项盖过
+- entity miss: 某通用词被 jieba 误识别为 `place` → board 73——该词实际是版面分类用语而非地名，不影响主路由
 
 **何时重新 baseline：** 改 IDF 公式、改 entity 抽取规则、扩 stopword、调 α 权重——任何一项改动后跑一次 `eval_self_routing.py --json`，把数字 commit 进本节。
 

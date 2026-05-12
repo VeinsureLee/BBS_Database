@@ -13,7 +13,7 @@
 
 v1.0 的 classical NLP 路径（jieba + TF-IDF + PMI + entity）在 P1 自检上达 99.6% top-3 / 99.4% entity-top-5，但有两类场景它解决不了：
 
-1. **冷启动期的语义匹配**——用户问"分手了"，"情感的天空"版面在 declared 文本里没有"分手"这个词；TF-IDF 找不到，但 embedding 能。
+1. **冷启动期的语义匹配**——用户问"分手了"，某情感讨论板面在 declared 文本里没有"分手"这个词；TF-IDF 找不到，但 embedding 能。
 2. **板面名与正文不符**（v1.0 §0 提到的核心痛点）——匿名/树洞版面声明"情感讨论"但实际谈人物评价。classical 的多跳扩展只能在已观测词上发挥作用，对未观测的概念关联无能为力；vector 在语义空间里天然能拉近这些 board。
 
 为此引入 thread 标题级 + board 画像级的 embedding，在 P1 classical 路径之上做 **hybrid 联合打分**。
