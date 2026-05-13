@@ -541,10 +541,47 @@ DASHSCOPE_API_KEY=sk-your-key-here
 | Phase | v1.0 范围 | v2.0 调整 | 状态 |
 |---|---|---|---|
 | P1 | classical builder + §6.4 (a)(b) 自检 | **不动** | ✅ 已完成（main commit `c55108f`），含 sidecar 修复 `5d9b332` |
-| **P2-vector** | router + 三函数 API + golden set | **vector layer**：board_vector + 初始 thread_vector（置顶） + 四函数 API（含新 `ingest_threads`） + hybrid 打分 + golden set 起步 | 待启动 |
+| **P2-vector** | router + 三函数 API + golden set | **vector layer**：board_vector + 初始 thread_vector（置顶） + 四函数 API（含新 `ingest_threads`） + hybrid 打分 + golden set 起步 | ✅ 已完成（main merge commit `4c3f3e3`） |
 | P3 | 增量构建 + CI | 增量 `--incremental --boards X,Y` + ingest 性能 + CI 接入 golden set + 文档 | 待启动 |
 | P4 | 与 BBS_MCP 联调 | 不变：BBS_MCP 包装 4 个 tool | 待启动 |
 | P5+ | 调参 / HanLP | 调参 + 探索 thread chunk 级正文向量（如未来想"看正文语义"再开放） + embedding 模型迭代评估 | — |
+
+### 7.2 P2-vector 首次基线（2026-05-13）
+
+首次 `rebuild_index.py --full` + golden smoke 跑通后，在真实 crawler 数据上：
+
+| 指标 | 值 | 备注 |
+|---|---|---|
+| forum_profile 行数 | 259 | 不变 |
+| board_vector 行数 | **259** | = forum_profile 行数 |
+| thread_vector 行数 | **980** | 全量 thread 都被 embed（真实数据当前 980 条全是 `is_pinned=1`，crawler init 状态特性） |
+| `index.db` 大小 | **8.5 MB** | classical ~3 MB + vector ~5.5 MB（板向量 259×4KB + 帖向量 980×4KB） |
+| Full build 耗时 | **138 秒** | 含 classical Phase 0 + 板/帖 vector embed（123 批 × ~1s/批 + 网络 RTT） |
+| 单 query 时延 | ~1.7 s | 含 jieba init 摊销；稳态约 200-300 ms（仅 1 次 embed 调用） |
+| API 成本（一次 full build） | < ¥0.05 | 1239 条文本 × 平均 ~50 token ≈ 6 万 token × ¥0.0007/千 |
+
+**Golden set 10 query 结果：**
+
+| 指标 | 命中率 | 详情 |
+|---|---|---|
+| top-1 | **40% (4/10)** | 直接命中：「情感的天空」「二手书交易」「校园活动」「游戏开黑」 |
+| top-3 | **70% (7/10)** | 加上：「兼职实习信息」（rank 2）「认证考试」（rank 2）「笔记本电脑」（rank 2）|
+
+**3 个 miss：**
+- "找房子" → 未命中"房屋租赁"——vector 未把"找房子"与"租"语义关联（query embed 与 board "房屋租赁" cosine 偏弱）
+- "求职面试经验" → 未命中含"求职"的板，但 rank-3 给的"跳槽就业"语义上是同义——**golden 的 `expect_path_contains` 字面匹配偏严**，并非 algorithm 真 miss
+- "毕业论文求助" → 未命中含"毕"的板，"毕业生找工作"等候选未浮起
+
+**与 v1.0 §6.7 P1 自检的对比说明：** v1.0 self-routing 测的是"用 board 名查自己"top-3 = 99.6%；v2.0 这里测的是"用自然语言 query 找语义相关板" top-3 = 70%。**两者是不同 task**，前者衡量索引完整性，后者衡量真实查询智能度。两个指标都要长期跟踪。
+
+**何时重新 baseline：** 改 embed model、调 δ / γ 权重、扩 stopwords、扩 golden 集——任一改动后跑 `pytest -m smoke tests/test_golden.py` + 重写本节数字。
+
+### 7.3 真实跑通后发现的 plan/spec 偏差
+
+| 项 | plan/spec 原文 | 实际 | 修正 |
+|---|---|---|---|
+| DashScope `batch_size` | 25（spec §4.3） | 单批上限 10 | `config/routing.yaml` 改成 10；spec/plan 留 note 待 P3 更新 |
+| `pinned_only_at_full_build` 的实际效果 | 仅 embed 置顶帖（小子集） | crawler init 阶段所有 980 帖都 `is_pinned=1`，"过滤"无效果 | 现状非 bug——P3 增量爬取后再观察实际占比 |
 
 ### 7.1 P2-vector 工作量预估
 

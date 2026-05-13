@@ -22,9 +22,16 @@ def golden():
 
 @pytest.fixture
 def real_api_key():
+    # api.py loads .env on import; do the same here so smoke runs can pick up
+    # DASHSCOPE_API_KEY from .env without requiring an exported shell env.
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass
     key = os.environ.get("DASHSCOPE_API_KEY", "").strip()
     if not key:
-        pytest.skip("DASHSCOPE_API_KEY not set")
+        pytest.skip("DASHSCOPE_API_KEY not set (checked .env and shell env)")
     return key
 
 
