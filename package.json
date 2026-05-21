@@ -1,0 +1,37 @@
+{
+  "name": "bbs-database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint:tsc": "tsc -p tsconfig.json --noEmit",
+
+    "inspect": "tsx scripts/inspect.ts",
+    "bootstrap": "tsx scripts/bootstrap.ts",
+    "sync:threads": "tsx scripts/sync-threads.ts",
+    "visualize": "tsx scripts/visualize.ts",
+    "reset": "tsx scripts/reset.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.5.0",
+    "dotenv": "^16.4.5",
+    "neo4j-driver": "^5.27.0",
+    "pino": "^9.4.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^20.14.10",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.3"
+  }
+}
