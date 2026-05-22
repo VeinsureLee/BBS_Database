@@ -11,7 +11,12 @@
  *   (:Site)-[:HAS_CHILD]->(:Forum) for every top-level forum on the site
  *   (parent)-[:HAS_CHILD]->(child) for every node with parent_id
  *
- * MERGE-only: rerunning is idempotent.
+ * Convergent (not just idempotent): each run **deletes all existing HAS_CHILD
+ * edges first**, then re-creates them from the current structure.db. This
+ * means re-running after the crawler corrects a parent_id reliably ends with
+ * the right topology — a board that moved between forums will lose its old
+ * parent edge, not accumulate a second one. Nodes (:Thread / :Month) and
+ * non-tree edges (:LOCATED_IN / :POSTED_IN / future :MEANS) are untouched.
  */
 import { readNodes, readSites, type NodeRow, type NodeType } from '../sqlite/reader.js';
 import { withSession } from './driver.js';
@@ -40,6 +45,7 @@ export interface BootstrapStats {
   sub_forums: number;
   boards: number;
   edges: number;
+  pruned_edges: number;
 }
 
 export async function bootstrapStructure(): Promise<BootstrapStats> {
@@ -52,9 +58,20 @@ export async function bootstrapStructure(): Promise<BootstrapStats> {
     sub_forums: nodes.filter((n) => n.type === 'sub_forum').length,
     boards: nodes.filter((n) => n.type === 'board').length,
     edges: 0,
+    pruned_edges: 0,
   };
 
   await withSession(async (s) => {
+    // Prune all existing HAS_CHILD edges before re-creating from SQLite. This
+    // ensures convergence after the crawler fixes a wrong parent_id — a board
+    // that re-attached to a different forum won't keep its stale parent edge.
+    // Safe: only HAS_CHILD is wiped; nodes + LOCATED_IN + POSTED_IN survive.
+    const cnt = await s.run('MATCH ()-[r:HAS_CHILD]->() RETURN count(r) AS n');
+    stats.pruned_edges = Number(cnt.records[0]?.get('n') ?? 0);
+    if (stats.pruned_edges > 0) {
+      await s.run('MATCH ()-[r:HAS_CHILD]->() DELETE r');
+    }
+
     // Sites — single-site MVP, show the Chinese root label "论坛" so the
     // Neo4j Browser visualisation has an obvious root all 讨论区 hang off.
     // Original crawler display_name kept under `display_name`.

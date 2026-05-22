@@ -29,8 +29,10 @@ async function summary() {
     SubForum: await countLabel('SubForum'),
     Board: await countLabel('Board'),
     Thread: await countLabel('Thread'),
+    Month: await countLabel('Month'),
     HAS_CHILD: await countRel('HAS_CHILD'),
     LOCATED_IN: await countRel('LOCATED_IN'),
+    POSTED_IN: await countRel('POSTED_IN'),
   };
 }
 

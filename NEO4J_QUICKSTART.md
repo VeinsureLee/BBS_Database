@@ -65,16 +65,18 @@ npm run visualize
 ```
 
 这会做三件事:
-1. **ensureSchema** — 建好约束(`Site.key` 唯一、`Forum.node_id` 唯一、`Thread.url` 唯一 等)和索引。
+1. **ensureSchema** — 建好约束(`Site.key` / `Forum.node_id` / `Thread.url` / `Month.year_month` 唯一 等)和索引。
 2. **bootstrapStructure** — 读 `data/crawler.db/structure.db`,把站点 → 讨论区 → 子讨论区 → 版面这棵树镜像到图里,边都用 `:HAS_CHILD`。
-3. **syncAllThreads** — 遍历所有 `data/crawler.db/forums/**/*.db`,把每条 thread 当成 `:Thread` 节点写进去,并连一条 `:LOCATED_IN` 边到所属 Board。
+3. **syncAllThreads** — 遍历所有 `data/crawler.db/forums/**/*.db`,把每条 thread 当成 `:Thread` 节点写进去,连两类边:
+   - `:LOCATED_IN -> :Board`(物理归属:它在哪个版)
+   - `:POSTED_IN -> :Month {year_month:"YYYY-MM"}`(时间归属:它哪个月发的;没 posted_at 的 thread 不连)
 
 跑完会打印一份汇总:
 
 ```
 graph summary: {
-  Site: 1, Forum: 10, SubForum: 10, Board: 259, Thread: 7750,
-  HAS_CHILD: 279, LOCATED_IN: 7750
+  Site: 1, Forum: 10, SubForum: 10, Board: 259, Thread: 7750, Month: ~255,
+  HAS_CHILD: 279, LOCATED_IN: 7750, POSTED_IN: ~7738
 }
 ```
 
@@ -89,8 +91,8 @@ graph summary: {
 ### 3.1 先点两下让 Browser 自带的"概览"出来
 
 左侧工具栏点最上面那个数据库图标 (Database)。会看到:
-- **Node labels**: `Site`, `Forum`, `SubForum`, `Board`, `Thread`
-- **Relationship types**: `HAS_CHILD`, `LOCATED_IN`
+- **Node labels**: `Site`, `Forum`, `SubForum`, `Board`, `Thread`, `Month`
+- **Relationship types**: `HAS_CHILD`, `LOCATED_IN`, `POSTED_IN`
 - **Property keys**: 我们写进去的字段
 
 **点任意一个 label**(比如 `Forum`),Browser 自动跑 `MATCH (n:Forum) RETURN n LIMIT 25`,中间出现 10 个圆圈,鼠标悬停能看到名字。
@@ -133,13 +135,44 @@ RETURN path
 LIMIT 25
 ```
 
-### 3.6 调整可视化样式(让节点上显示名字)
+### 3.6 按发帖时间看版面下的帖子
+
+图里每条 thread 都会连一个 `:Month {year_month:'YYYY-MM'}` 节点(通过 `:POSTED_IN` 边),没有 `posted_at` 的帖子不连(目前 7750 条里只有 12 条这样)。
+
+**画出某版面 + 它下面所有帖子 + 帖子所在月份**(三类节点同时显示):
+
+```cypher
+MATCH (b:Board {name:'意见与建议'})<-[:LOCATED_IN]-(t:Thread)-[:POSTED_IN]->(m:Month)
+RETURN b, t, m
+LIMIT 80
+```
+
+中间会出现 Board 在中心、Thread 一圈在外面、Month 节点又一圈(2026-05 / 2026-04 ...)在最外面。**Thread 通过 Month 自然按时间聚簇**——同月份的帖子被同一个 Month 节点拉到一起。
+
+**按月份统计某版面发帖数**(更接近表格"分类"的形态):
+
+```cypher
+MATCH (b:Board {name:'北邮生活'})<-[:LOCATED_IN]-(t:Thread)-[:POSTED_IN]->(m:Month)
+RETURN m.year_month AS month, count(t) AS n_threads
+ORDER BY month DESC
+```
+
+**只看某版面 + 某月的帖子**:
+
+```cypher
+MATCH (b:Board {name:'北邮生活'})<-[:LOCATED_IN]-(t:Thread)-[:POSTED_IN]->(:Month {year_month:'2026-05'})
+RETURN t.title, t.author, t.posted_at
+ORDER BY t.posted_at DESC
+```
+
+### 3.7 调整可视化样式(让节点上显示名字)
 
 点节点时,左下角弹出属性面板,有个 "caption" 按钮(三横线那种),可以把节点上显示的字段从 `<id>` 换成 `name` / `title`。**强烈建议设一下**:
 
 - `:Site` → 显示 `name`
 - `:Forum` / `:SubForum` / `:Board` → 显示 `name`
 - `:Thread` → 显示 `title`
+- `:Month` → 显示 `year_month`
 
 设置一次会记住。
 

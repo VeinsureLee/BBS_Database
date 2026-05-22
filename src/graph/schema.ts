@@ -10,6 +10,7 @@ const STATEMENTS = [
   'CREATE CONSTRAINT subforum_nid  IF NOT EXISTS FOR (n:SubForum) REQUIRE n.node_id IS UNIQUE',
   'CREATE CONSTRAINT board_nid     IF NOT EXISTS FOR (b:Board)    REQUIRE b.node_id IS UNIQUE',
   'CREATE CONSTRAINT thread_url    IF NOT EXISTS FOR (t:Thread)   REQUIRE t.url IS UNIQUE',
+  'CREATE CONSTRAINT month_ym      IF NOT EXISTS FOR (m:Month)    REQUIRE m.year_month IS UNIQUE',
   'CREATE INDEX board_name         IF NOT EXISTS FOR (b:Board)    ON (b.name)',
   'CREATE INDEX thread_board       IF NOT EXISTS FOR (t:Thread)   ON (t.board_node_id)',
 ];

@@ -1,13 +1,17 @@
 /**
  * Sync threads from every board.db that exists on disk into Neo4j.
- * Phase 1 only: :LOCATED_IN edge (physical). No :MEANS yet.
+ *
+ * Edges emitted:
+ *   (:Thread)-[:LOCATED_IN]->(:Board)            physical board the thread is in
+ *   (:Thread)-[:POSTED_IN]->(:Month {year_month}) post-month bucket (year_month = "YYYY-MM")
+ *
+ * No :MEANS yet (Phase 3 once we have an embedder).
  *
  * Thread key:
- *   - design.md proposed (forum_db, kind, thread_id) when there were separate
- *     pinned/plain tables. Crawler has since unified to a single `threads`
- *     table with `is_pinned` column and `url UNIQUE`.
- *   - We use `url` as Neo4j Thread key (already URL-unique BBS-wide) and store
- *     is_pinned as a boolean property. Simpler and matches the live schema.
+ *   - design.md originally proposed (forum_db, kind, thread_id) back when there
+ *     were separate pinned/plain tables. Crawler has since unified to a single
+ *     `threads` table with `is_pinned` column and `url UNIQUE`.
+ *   - We use `url` as Neo4j Thread key and store is_pinned as a boolean property.
  */
 import { readBoardsWithDb, readThreadsForBoard, type ThreadRow } from '../sqlite/reader.js';
 import { withSession } from './driver.js';
@@ -17,9 +21,19 @@ export interface SyncStats {
   boards_with_threads: number;
   threads_synced: number;
   located_in_edges: number;
+  posted_in_edges: number;
+  months_seen: number;
 }
 
 const BATCH = 500;
+
+function yearMonthOf(posted_at: string | null): string | null {
+  if (!posted_at || posted_at.length < 7) return null;
+  const ym = posted_at.slice(0, 7);
+  // sanity check: "YYYY-MM"
+  if (!/^\d{4}-\d{2}$/.test(ym)) return null;
+  return ym;
+}
 
 export async function syncAllThreads(): Promise<SyncStats> {
   const boards = readBoardsWithDb();
@@ -28,7 +42,10 @@ export async function syncAllThreads(): Promise<SyncStats> {
     boards_with_threads: 0,
     threads_synced: 0,
     located_in_edges: 0,
+    posted_in_edges: 0,
+    months_seen: 0,
   };
+  const monthsSeen = new Set<string>();
 
   await withSession(async (s) => {
     for (const board of boards) {
@@ -38,6 +55,7 @@ export async function syncAllThreads(): Promise<SyncStats> {
 
       for (let i = 0; i < threads.length; i += BATCH) {
         const chunk = threads.slice(i, i + BATCH).map(threadParam);
+        for (const row of chunk) if (row.year_month) monthsSeen.add(row.year_month);
 
         const result = await s.run(
           `UNWIND $rows AS row
@@ -54,20 +72,27 @@ export async function syncAllThreads(): Promise<SyncStats> {
                  t.forum_db      = row.forum_db
            WITH t, row
            MATCH (b:Board {node_id: row.board_node_id})
-           MERGE (t)-[r:LOCATED_IN]->(b)
-           RETURN count(t) AS n_threads, count(r) AS n_edges`,
+           MERGE (t)-[loc:LOCATED_IN]->(b)
+           WITH t, row, loc
+           FOREACH (ym IN CASE WHEN row.year_month IS NULL THEN [] ELSE [row.year_month] END |
+             MERGE (m:Month {year_month: ym})
+             MERGE (t)-[:POSTED_IN]->(m)
+           )
+           RETURN count(t) AS n_threads, count(loc) AS n_located`,
           { rows: chunk },
         );
 
         const rec = result.records[0];
         if (rec) {
           stats.threads_synced += Number(rec.get('n_threads'));
-          stats.located_in_edges += Number(rec.get('n_edges'));
+          stats.located_in_edges += Number(rec.get('n_located'));
         }
+        stats.posted_in_edges += chunk.filter((r) => r.year_month !== null).length;
       }
     }
   });
 
+  stats.months_seen = monthsSeen.size;
   return stats;
 }
 
@@ -84,5 +109,6 @@ function threadParam(t: ThreadRow & { forum_db?: string }) {
     view_count: t.view_count,
     is_pinned: t.is_pinned === 1,
     forum_db: t.forum_db ?? null,
+    year_month: yearMonthOf(t.posted_at),
   };
 }

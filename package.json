@@ -19,7 +19,8 @@
     "bootstrap": "tsx scripts/bootstrap.ts",
     "sync:threads": "tsx scripts/sync-threads.ts",
     "visualize": "tsx scripts/visualize.ts",
-    "reset": "tsx scripts/reset.ts"
+    "reset": "tsx scripts/reset.ts",
+    "dev:up": "powershell -ExecutionPolicy Bypass -File scripts/dev-up.ps1"
   },
   "dependencies": {
     "better-sqlite3": "^11.5.0",
