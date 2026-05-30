@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { NullSearch } from '../../src/search/null.js';
 import { NotImplementedError } from '../../src/search/types.js';
+import { createSearch } from '../../src/search/index.js';
 
 describe('NullSearch', () => {
   it('reports kind="null"', () => {
@@ -34,5 +35,12 @@ describe('NullSearch', () => {
     await expect(s.routeIntent('x')).rejects.toThrow(pattern);
     await expect(s.threadsByMeaningBoard(1)).rejects.toThrow(pattern);
     await expect(s.suggestCrawlTargets({ query: 'x' })).rejects.toThrow(pattern);
+  });
+});
+
+describe('createSearch', () => {
+  it("returns NullSearch when kind='null'", () => {
+    const s = createSearch({ kind: 'null' });
+    expect(s.kind).toBe('null');
   });
 });
