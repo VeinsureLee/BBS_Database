@@ -14,7 +14,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint:tsc": "tsc -p tsconfig.json --noEmit",
-
+    "test": "vitest run",
+    "test:watch": "vitest",
     "inspect": "tsx scripts/inspect.ts",
     "bootstrap": "tsx scripts/bootstrap.ts",
     "sync:threads": "tsx scripts/sync-threads.ts",
@@ -32,7 +33,9 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^20.14.10",
+    "@vitest/coverage-v8": "^4.1.7",
     "tsx": "^4.16.2",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "vitest": "^4.1.7"
   }
 }
