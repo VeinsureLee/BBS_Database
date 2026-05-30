@@ -24,7 +24,7 @@ export interface SearchAlgorithm {
   readonly kind: SearchKind;
   routeIntent(query: string, topK?: number): Promise<RouteHit[]>;
   threadsByMeaningBoard(
-    boardNodeId: number,
+    meaningBoardId: number,
     opts?: { limit?: number; minWeight?: number },
   ): Promise<ThreadHit[]>;
   suggestCrawlTargets(
