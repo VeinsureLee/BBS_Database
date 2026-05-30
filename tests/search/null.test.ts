@@ -28,8 +28,11 @@ describe('NullSearch', () => {
     await expect(s.suggestCrawlTargets({ query: 'x' })).rejects.toBeInstanceOf(NotImplementedError);
   });
 
-  it('error message mentions search.kind=null', async () => {
+  it('error message mentions search.kind=null on all methods', async () => {
     const s = new NullSearch();
-    await expect(s.routeIntent('x')).rejects.toThrow(/search\.kind=null/);
+    const pattern = /search\.kind=null/;
+    await expect(s.routeIntent('x')).rejects.toThrow(pattern);
+    await expect(s.threadsByMeaningBoard(1)).rejects.toThrow(pattern);
+    await expect(s.suggestCrawlTargets({ query: 'x' })).rejects.toThrow(pattern);
   });
 });
