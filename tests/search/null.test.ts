@@ -42,5 +42,6 @@ describe('createSearch', () => {
   it("returns NullSearch when kind='null'", () => {
     const s = createSearch({ kind: 'null' });
     expect(s.kind).toBe('null');
+    expect(s).toBeInstanceOf(NullSearch);
   });
 });
