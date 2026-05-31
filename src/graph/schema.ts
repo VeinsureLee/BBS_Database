@@ -3,7 +3,6 @@
  * No :MEANS edges yet (those need an embedder; see design.md §3.2 / Phase 3).
  */
 import type { DriverHandle } from './driver.js';
-import { withSession as legacyWithSession } from './driver.js';
 
 const STATEMENTS = [
   'CREATE CONSTRAINT site_key      IF NOT EXISTS FOR (s:Site)     REQUIRE s.key IS UNIQUE',
@@ -16,11 +15,8 @@ const STATEMENTS = [
   'CREATE INDEX thread_board       IF NOT EXISTS FOR (t:Thread)   ON (t.board_node_id)',
 ];
 
-export async function ensureSchema(driver?: DriverHandle): Promise<void> {
-  const runIn = driver
-    ? <T>(fn: (s: import('neo4j-driver').Session) => Promise<T>) => driver.withSession(fn)
-    : legacyWithSession;
-  await runIn(async (s) => {
+export async function ensureSchema(driver: DriverHandle): Promise<void> {
+  await driver.withSession(async (s) => {
     for (const stmt of STATEMENTS) await s.run(stmt);
   });
 }

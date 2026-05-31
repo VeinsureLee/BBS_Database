@@ -1,6 +1,7 @@
 /**
  * Drop everything in the Neo4j database. Destructive — for dev only.
  */
+import 'dotenv/config';
 import { parseEnv } from '../src/index.js';
 import { createDriver } from '../src/graph/driver.js';
 

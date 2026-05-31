@@ -18,9 +18,9 @@
  * parent edge, not accumulate a second one. Nodes (:Thread / :Month) and
  * non-tree edges (:LOCATED_IN / :POSTED_IN / future :MEANS) are untouched.
  */
-import { readNodes, readSites, type NodeRow, type NodeType } from '../sqlite/reader.js';
+import type { NodeRow, NodeType } from '../sqlite/reader.js';
+import type { SqliteReader } from '../sqlite/reader.js';
 import type { DriverHandle } from './driver.js';
-import { withSession as legacyWithSession } from './driver.js';
 import type { BootstrapStats } from './types.js';
 export type { BootstrapStats } from './types.js';
 
@@ -44,12 +44,12 @@ function nodeProps(n: NodeRow) {
 
 export interface BootstrapDeps {
   driver: DriverHandle;
-  // future: sqlite: SqliteReader (Task 14)
+  sqlite: SqliteReader;
 }
 
-export async function bootstrapStructure(deps?: BootstrapDeps): Promise<BootstrapStats> {
-  const sites = readSites();
-  const nodes = readNodes();
+export async function bootstrapStructure(deps: BootstrapDeps): Promise<BootstrapStats> {
+  const sites = deps.sqlite.readSites();
+  const nodes = deps.sqlite.readNodes();
 
   const stats: BootstrapStats = {
     sites: sites.length,
@@ -60,11 +60,7 @@ export async function bootstrapStructure(deps?: BootstrapDeps): Promise<Bootstra
     pruned_edges: 0,
   };
 
-  const runIn = deps
-    ? <T>(fn: (s: import('neo4j-driver').Session) => Promise<T>) => deps.driver.withSession(fn)
-    : legacyWithSession;
-
-  await runIn(async (s) => {
+  await deps.driver.withSession(async (s) => {
     // Prune all existing HAS_CHILD edges before re-creating from SQLite. This
     // ensures convergence after the crawler fixes a wrong parent_id — a board
     // that re-attached to a different forum won't keep its stale parent edge.

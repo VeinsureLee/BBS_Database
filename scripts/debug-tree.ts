@@ -3,6 +3,7 @@
  * Neo4j graph actually show as HAS_CHILD edges? If they disagree, bootstrap
  * has a bug.
  */
+import 'dotenv/config';
 import Database from 'better-sqlite3';
 import { resolve } from 'node:path';
 import { parseEnv } from '../src/config.js';

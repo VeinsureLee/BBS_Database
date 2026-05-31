@@ -16,9 +16,3 @@ export { NotImplementedError } from './search/types.js';
 export type { VisualizeProvider, VisualizeInfo, VisualizeKind } from './visualize/types.js';
 export type { Embedder, EmbedderKind } from './embed/types.js';
 
-// --- DEPRECATED legacy bridges. Plan Task 21 removes these. ---
-export { bootstrapStructure } from './graph/bootstrap.js';
-export { syncAllThreads } from './graph/sync.js';
-export { ensureSchema } from './graph/schema.js';
-export { closeDriver, withSession } from './graph/driver.js';
-export { config } from './config.js';

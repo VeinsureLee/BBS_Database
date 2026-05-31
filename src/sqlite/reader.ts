@@ -9,7 +9,6 @@
 import Database from 'better-sqlite3';
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { config } from '../config.js';
 
 export interface SiteRow {
   site_key: string;
@@ -48,7 +47,7 @@ function openRo(file: string): Database.Database {
   return new Database(file, { readonly: true, fileMustExist: true });
 }
 
-// --- private impls used by both module-level (bridge) and instance APIs ---
+// --- private impls ---
 
 function readSitesAt(structureDb: string): SiteRow[] {
   const db = openRo(structureDb);
@@ -99,26 +98,7 @@ function readThreadsForBoardAt(dataRoot: string, board: NodeRow): ThreadRow[] {
   }
 }
 
-// Module-level bridge functions (kept for backward-compat; delegate to *At helpers)
-
-export function readSites(): SiteRow[] {
-  return readSitesAt(config.structureDb);
-}
-
-export function readNodes(): NodeRow[] {
-  return readNodesAt(config.structureDb);
-}
-
-/** Boards that have a db_path on disk. */
-export function readBoardsWithDb(): NodeRow[] {
-  return readBoardsWithDbAt(config.dataRoot, config.structureDb);
-}
-
-export function readThreadsForBoard(board: NodeRow): ThreadRow[] {
-  return readThreadsForBoardAt(config.dataRoot, board);
-}
-
-// --- Instance-based API (preferred; module-level functions are a bridge) ---
+// --- Instance-based API ---
 
 export interface SqliteReader {
   readonly dataRoot: string;

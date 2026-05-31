@@ -1,6 +1,7 @@
 /**
  * Phase 1, step 2: sync every thread into Neo4j with :LOCATED_IN edge.
  */
+import 'dotenv/config';
 import { createDatabase, parseEnv } from '../src/index.js';
 
 const db = await createDatabase(parseEnv(process.env));

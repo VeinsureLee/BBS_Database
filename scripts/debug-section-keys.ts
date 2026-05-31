@@ -4,6 +4,7 @@
  * adapter parses anchors and pairs href→text wrong); if they match but
  * children are wrong, the bug is in the URL the BBS renders.
  */
+import 'dotenv/config';
 import Database from 'better-sqlite3';
 import { resolve } from 'node:path';
 import { parseEnv } from '../src/config.js';

@@ -1,6 +1,7 @@
 /**
  * Phase 1, step 1: mirror sites + nodes tree into Neo4j. Idempotent + convergent.
  */
+import 'dotenv/config';
 import { createDatabase, parseEnv } from '../src/index.js';
 
 const db = await createDatabase(parseEnv(process.env));
