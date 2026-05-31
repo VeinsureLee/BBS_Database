@@ -1,57 +1,57 @@
 /**
- * One-shot for Phase 1: ensure schema, mirror tree, sync threads.
- * After this finishes, open http://localhost:7474 and try the Cypher in
- * NEO4J_QUICKSTART.md.
+ * One-shot Phase 1: ensure schema, mirror tree, sync threads, then print
+ * the visualize URL hint.
  */
-import { ensureSchema } from '../src/graph/schema.js';
-import { bootstrapStructure } from '../src/graph/bootstrap.js';
-import { syncAllThreads } from '../src/graph/sync.js';
-import { closeDriver, withSession } from '../src/graph/driver.js';
+import { createDatabase, parseEnv } from '../src/index.js';
 
-async function countLabel(label: string): Promise<number> {
+async function countLabel(db: Awaited<ReturnType<typeof createDatabase>>, label: string): Promise<number> {
+  // Until graph.queries lands, just go through a raw session via the driver
+  // we already constructed. Visualization script is dev-only; reusing the
+  // factory's driver via a small back-door is OK here.
+  const { withSession } = await import('../src/graph/driver.js');
   return withSession(async (s) => {
     const r = await s.run(`MATCH (n:${label}) RETURN count(n) AS n`);
     return Number(r.records[0]?.get('n') ?? 0);
   });
 }
 
-async function countRel(type: string): Promise<number> {
+async function countRel(db: Awaited<ReturnType<typeof createDatabase>>, type: string): Promise<number> {
+  const { withSession } = await import('../src/graph/driver.js');
   return withSession(async (s) => {
     const r = await s.run(`MATCH ()-[r:${type}]->() RETURN count(r) AS n`);
     return Number(r.records[0]?.get('n') ?? 0);
   });
 }
 
-async function summary() {
-  return {
-    Site: await countLabel('Site'),
-    Forum: await countLabel('Forum'),
-    SubForum: await countLabel('SubForum'),
-    Board: await countLabel('Board'),
-    Thread: await countLabel('Thread'),
-    Month: await countLabel('Month'),
-    HAS_CHILD: await countRel('HAS_CHILD'),
-    LOCATED_IN: await countRel('LOCATED_IN'),
-    POSTED_IN: await countRel('POSTED_IN'),
-  };
-}
-
-async function main() {
+const db = await createDatabase(parseEnv(process.env));
+try {
   console.log('[1/3] ensureSchema');
-  await ensureSchema();
-  console.log('[2/3] bootstrapStructure');
-  console.log('       ', await bootstrapStructure());
-  console.log('[3/3] syncAllThreads');
-  console.log('       ', await syncAllThreads());
-  console.log('graph summary:', await summary());
-  console.log('\n  Open http://localhost:7474');
-  console.log('  Login: neo4j / bbs_password_123');
-  console.log('  Then see BBS_Database/NEO4J_QUICKSTART.md');
-}
+  await db.graph.ensureSchema();
+  console.log('[2/3] bootstrap');
+  console.log('       ', await db.graph.bootstrap());
+  console.log('[3/3] sync');
+  console.log('       ', await db.graph.sync());
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exitCode = 1;
-  })
-  .finally(() => closeDriver());
+  console.log('\ngraph summary:', {
+    Site:      await countLabel(db, 'Site'),
+    Forum:     await countLabel(db, 'Forum'),
+    SubForum:  await countLabel(db, 'SubForum'),
+    Board:     await countLabel(db, 'Board'),
+    Thread:    await countLabel(db, 'Thread'),
+    Month:     await countLabel(db, 'Month'),
+    HAS_CHILD: await countRel(db, 'HAS_CHILD'),
+    LOCATED_IN: await countRel(db, 'LOCATED_IN'),
+    POSTED_IN: await countRel(db, 'POSTED_IN'),
+  });
+
+  const info = db.visualize.info();
+  console.log('\nvisualize:', info);
+  console.log(`  Open ${info.url}`);
+  console.log(`  Login: ${info.user} / <password>`);
+  console.log(`  Try: ${info.hint}`);
+} catch (e) {
+  console.error(e);
+  process.exitCode = 1;
+} finally {
+  await db.shutdown();
+}
