@@ -21,6 +21,8 @@
 import { readNodes, readSites, type NodeRow, type NodeType } from '../sqlite/reader.js';
 import type { DriverHandle } from './driver.js';
 import { withSession as legacyWithSession } from './driver.js';
+import type { BootstrapStats } from './types.js';
+export type { BootstrapStats } from './types.js';
 
 const LABEL_BY_TYPE: Record<NodeType, 'Forum' | 'SubForum' | 'Board'> = {
   forum: 'Forum',
@@ -38,15 +40,6 @@ function nodeProps(n: NodeRow) {
     db_path: n.db_path,
     site_key: n.site_key,
   };
-}
-
-export interface BootstrapStats {
-  sites: number;
-  forums: number;
-  sub_forums: number;
-  boards: number;
-  edges: number;
-  pruned_edges: number;
 }
 
 export interface BootstrapDeps {

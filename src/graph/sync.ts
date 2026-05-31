@@ -16,15 +16,8 @@
 import { readBoardsWithDb, readThreadsForBoard, type ThreadRow } from '../sqlite/reader.js';
 import type { DriverHandle } from './driver.js';
 import { withSession as legacyWithSession } from './driver.js';
-
-export interface SyncStats {
-  boards_scanned: number;
-  boards_with_threads: number;
-  threads_synced: number;
-  located_in_edges: number;
-  posted_in_edges: number;
-  months_seen: number;
-}
+import type { SyncStats } from './types.js';
+export type { SyncStats } from './types.js';
 
 const BATCH = 500;
 
