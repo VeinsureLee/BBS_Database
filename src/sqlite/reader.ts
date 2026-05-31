@@ -48,8 +48,10 @@ function openRo(file: string): Database.Database {
   return new Database(file, { readonly: true, fileMustExist: true });
 }
 
-export function readSites(): SiteRow[] {
-  const db = openRo(config.structureDb);
+// --- private impls used by both module-level (bridge) and instance APIs ---
+
+function readSitesAt(structureDb: string): SiteRow[] {
+  const db = openRo(structureDb);
   try {
     return db.prepare('SELECT site_key, display_name, base_url FROM sites').all() as SiteRow[];
   } finally {
@@ -57,8 +59,8 @@ export function readSites(): SiteRow[] {
   }
 }
 
-export function readNodes(): NodeRow[] {
-  const db = openRo(config.structureDb);
+function readNodesAt(structureDb: string): NodeRow[] {
+  const db = openRo(structureDb);
   try {
     return db
       .prepare(
@@ -72,14 +74,15 @@ export function readNodes(): NodeRow[] {
   }
 }
 
-/** Boards that have a db_path on disk. */
-export function readBoardsWithDb(): NodeRow[] {
-  return readNodes().filter((n) => n.type === 'board' && n.db_path && existsSync(resolve(config.dataRoot, n.db_path)));
+function readBoardsWithDbAt(dataRoot: string, structureDb: string): NodeRow[] {
+  return readNodesAt(structureDb).filter(
+    (n) => n.type === 'board' && n.db_path && existsSync(resolve(dataRoot, n.db_path)),
+  );
 }
 
-export function readThreadsForBoard(board: NodeRow): ThreadRow[] {
+function readThreadsForBoardAt(dataRoot: string, board: NodeRow): ThreadRow[] {
   if (!board.db_path) return [];
-  const file = resolve(config.dataRoot, board.db_path);
+  const file = resolve(dataRoot, board.db_path);
   if (!existsSync(file)) return [];
   const db = openRo(file);
   try {
@@ -94,4 +97,51 @@ export function readThreadsForBoard(board: NodeRow): ThreadRow[] {
   } finally {
     db.close();
   }
+}
+
+// Module-level bridge functions (kept for backward-compat; delegate to *At helpers)
+
+export function readSites(): SiteRow[] {
+  return readSitesAt(config.structureDb);
+}
+
+export function readNodes(): NodeRow[] {
+  return readNodesAt(config.structureDb);
+}
+
+/** Boards that have a db_path on disk. */
+export function readBoardsWithDb(): NodeRow[] {
+  return readBoardsWithDbAt(config.dataRoot, config.structureDb);
+}
+
+export function readThreadsForBoard(board: NodeRow): ThreadRow[] {
+  return readThreadsForBoardAt(config.dataRoot, board);
+}
+
+// --- Instance-based API (preferred; module-level functions are a bridge) ---
+
+export interface SqliteReader {
+  readonly dataRoot: string;
+  readonly structureDb: string;
+  readonly forumsRoot: string;
+  readSites(): SiteRow[];
+  readNodes(): NodeRow[];
+  readBoardsWithDb(): NodeRow[];
+  readThreadsForBoard(board: NodeRow): ThreadRow[];
+  /** No-op for now (each method opens/closes per call); reserved for caching. */
+  close(): void;
+}
+
+export function createSqliteReader(dataRoot: string): SqliteReader {
+  const structureDb = resolve(dataRoot, 'structure.db');
+  return {
+    dataRoot,
+    structureDb,
+    forumsRoot: resolve(dataRoot, 'forums'),
+    readSites: () => readSitesAt(structureDb),
+    readNodes: () => readNodesAt(structureDb),
+    readBoardsWithDb: () => readBoardsWithDbAt(dataRoot, structureDb),
+    readThreadsForBoard: (b) => readThreadsForBoardAt(dataRoot, b),
+    close: () => { /* no-op */ },
+  };
 }
