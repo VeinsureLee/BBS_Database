@@ -24,9 +24,12 @@ export class Neo4jBrowserProvider implements VisualizeProvider {
 }
 
 function deriveBrowserUrl(boltUri: string): string {
-  // bolt://host:7687 -> http://host:7474. If parsing fails, fall back.
+  // bolt://host:7687 -> http://host:7474. Also handles neo4j:// (routing/cluster
+  // alias) and the +s/+ssc TLS variants. If parsing fails, fall back.
   try {
-    const u = new URL(boltUri.replace(/^bolt(\+s|\+ssc)?:/, 'http:'));
+    const u = new URL(
+      boltUri.replace(/^(bolt|neo4j)(\+s|\+ssc)?:/, 'http:'),
+    );
     u.port = '7474';
     return `${u.protocol}//${u.hostname}:${u.port}`;
   } catch {
