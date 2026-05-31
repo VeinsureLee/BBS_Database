@@ -1,19 +1,15 @@
 /**
  * Phase 1, step 2: sync every thread into Neo4j with :LOCATED_IN edge.
- * Requires bootstrap.ts to have run first (so Board nodes exist).
  */
-import { syncAllThreads } from '../src/graph/sync.js';
-import { closeDriver } from '../src/graph/driver.js';
+import { createDatabase, parseEnv } from '../src/index.js';
 
-async function main() {
+const db = await createDatabase(parseEnv(process.env));
+try {
   console.log('syncing threads ...');
-  const stats = await syncAllThreads();
-  console.log('done:', stats);
+  console.log('done:', await db.graph.sync());
+} catch (e) {
+  console.error(e);
+  process.exitCode = 1;
+} finally {
+  await db.shutdown();
 }
-
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exitCode = 1;
-  })
-  .finally(() => closeDriver());

@@ -1,22 +1,17 @@
 /**
- * Phase 1, step 1: mirror sites + nodes tree into Neo4j.
- * Idempotent — safe to re-run.
+ * Phase 1, step 1: mirror sites + nodes tree into Neo4j. Idempotent + convergent.
  */
-import { ensureSchema } from '../src/graph/schema.js';
-import { bootstrapStructure } from '../src/graph/bootstrap.js';
-import { closeDriver } from '../src/graph/driver.js';
+import { createDatabase, parseEnv } from '../src/index.js';
 
-async function main() {
+const db = await createDatabase(parseEnv(process.env));
+try {
   console.log('[1/2] ensuring constraints / indexes ...');
-  await ensureSchema();
+  await db.graph.ensureSchema();
   console.log('[2/2] mirroring structure.db ...');
-  const stats = await bootstrapStructure();
-  console.log('done:', stats);
+  console.log('done:', await db.graph.bootstrap());
+} catch (e) {
+  console.error(e);
+  process.exitCode = 1;
+} finally {
+  await db.shutdown();
 }
-
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exitCode = 1;
-  })
-  .finally(() => closeDriver());
