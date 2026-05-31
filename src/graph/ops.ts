@@ -7,6 +7,9 @@ import { syncAllThreads } from './sync.js';
 
 export interface GraphOpsDeps {
   driver: DriverHandle;
+  /** Reserved: Task 19 will inject the reader into bootstrapStructure / syncAllThreads.
+   * Currently unused by createGraphOps — those calls still read SQLite via the
+   * module-level bridge (`readNodes()`, etc.). */
   sqlite: SqliteReader;
 }
 
