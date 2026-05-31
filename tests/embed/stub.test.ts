@@ -60,4 +60,10 @@ describe('createEmbedder', () => {
       /dashscope/,
     );
   });
+
+  it("throws on kind='openai' (not implemented yet)", () => {
+    expect(() => createEmbedder({ kind: 'openai', apiKey: 'x' })).toThrow(
+      /openai/,
+    );
+  });
 });

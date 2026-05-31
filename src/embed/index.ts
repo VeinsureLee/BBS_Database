@@ -7,16 +7,17 @@ export type EmbedderConfig =
   | { kind: 'openai'; apiKey: string; model?: string };
 
 export function createEmbedder(cfg: EmbedderConfig = { kind: 'stub' }): Embedder {
-  switch (cfg.kind) {
+  const { kind } = cfg;
+  switch (kind) {
     case 'stub':
       return new StubEmbedder();
     case 'dashscope':
       throw new Error('dashscope embedder not implemented yet (Phase 6 in design.md)');
     case 'openai':
-      throw new Error('openai embedder not implemented yet');
+      throw new Error('openai embedder not implemented yet (Phase 6 in design.md)');
     default: {
-      const _exhaustive: never = cfg;
-      throw new Error(`unknown embedder kind: ${JSON.stringify(_exhaustive)}`);
+      const _exhaustive: never = kind;
+      throw new Error(`unknown embedder kind: ${_exhaustive as string}`);
     }
   }
 }
