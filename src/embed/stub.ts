@@ -19,7 +19,7 @@ export class StubEmbedder implements Embedder {
 
 function deriveVector(text: string): Float32Array {
   const out = new Float32Array(DIMS);
-  // Stream SHA-256 digests with rolling salt to fill DIMS*4 bytes.
+  // Stream SHA-256 digests with rolling salt to fill DIMS float slots (2 bytes of hash material each).
   let salt = 0;
   let filled = 0;
   while (filled < DIMS) {
