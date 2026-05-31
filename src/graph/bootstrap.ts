@@ -19,7 +19,8 @@
  * non-tree edges (:LOCATED_IN / :POSTED_IN / future :MEANS) are untouched.
  */
 import { readNodes, readSites, type NodeRow, type NodeType } from '../sqlite/reader.js';
-import { withSession } from './driver.js';
+import type { DriverHandle } from './driver.js';
+import { withSession as legacyWithSession } from './driver.js';
 
 const LABEL_BY_TYPE: Record<NodeType, 'Forum' | 'SubForum' | 'Board'> = {
   forum: 'Forum',
@@ -48,7 +49,12 @@ export interface BootstrapStats {
   pruned_edges: number;
 }
 
-export async function bootstrapStructure(): Promise<BootstrapStats> {
+export interface BootstrapDeps {
+  driver: DriverHandle;
+  // future: sqlite: SqliteReader (Task 14)
+}
+
+export async function bootstrapStructure(deps?: BootstrapDeps): Promise<BootstrapStats> {
   const sites = readSites();
   const nodes = readNodes();
 
@@ -61,7 +67,11 @@ export async function bootstrapStructure(): Promise<BootstrapStats> {
     pruned_edges: 0,
   };
 
-  await withSession(async (s) => {
+  const runIn = deps
+    ? <T>(fn: (s: import('neo4j-driver').Session) => Promise<T>) => deps.driver.withSession(fn)
+    : legacyWithSession;
+
+  await runIn(async (s) => {
     // Prune all existing HAS_CHILD edges before re-creating from SQLite. This
     // ensures convergence after the crawler fixes a wrong parent_id — a board
     // that re-attached to a different forum won't keep its stale parent edge.
