@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { StubEmbedder } from '../../src/embed/stub.js';
+import { createEmbedder } from '../../src/embed/index.js';
 
 describe('StubEmbedder', () => {
   it('reports model and dims', () => {
@@ -40,5 +41,23 @@ describe('StubEmbedder', () => {
     const [v] = await e.embed(['hello world']);
     const norm = Math.sqrt(Array.from(v!).reduce((s, x) => s + x * x, 0));
     expect(norm).toBeCloseTo(1.0, 3);
+  });
+});
+
+describe('createEmbedder', () => {
+  it("returns StubEmbedder when kind='stub'", () => {
+    const e = createEmbedder({ kind: 'stub' });
+    expect(e.model).toBe('stub');
+  });
+
+  it('defaults to stub when given undefined', () => {
+    const e = createEmbedder();
+    expect(e.model).toBe('stub');
+  });
+
+  it("throws on kind='dashscope' (not implemented yet)", () => {
+    expect(() => createEmbedder({ kind: 'dashscope', apiKey: 'x' })).toThrow(
+      /dashscope/,
+    );
   });
 });
