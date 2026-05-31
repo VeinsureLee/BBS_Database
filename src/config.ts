@@ -32,17 +32,22 @@ export function parseEnv(env: NodeJS.ProcessEnv | Record<string, string | undefi
   };
 }
 
-/**
- * @deprecated bridge while migrating to createDatabase(). Read process.env at
- * module load time. Will be removed once src/index.ts and all scripts stop
- * importing it (see plan Task 17).
- */
 function required(name: string): string {
   const v = process.env[name];
-  if (!v) throw new Error(`Missing env var ${name}.`);
+  if (!v) {
+    throw new Error(
+      `Missing env var ${name}. Copy BBS_Database/.env.example to .env and fill in the value.`,
+    );
+  }
   return v;
 }
 
+/**
+ * @deprecated Bridge while migrating to createDatabase(). Reads process.env at
+ * module load time, which couples consumers to the global environment. Prefer
+ * `parseEnv(process.env)` + `createDatabase(...)`. Will be removed once all
+ * call sites are migrated (see plan Task 17).
+ */
 export const config = {
   dataRoot: DEFAULT_DATA_ROOT,
   structureDb: resolve(DEFAULT_DATA_ROOT, 'structure.db'),
