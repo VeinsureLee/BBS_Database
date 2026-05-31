@@ -5,9 +5,12 @@
  * children are wrong, the bug is in the URL the BBS renders.
  */
 import Database from 'better-sqlite3';
-import { config } from '../src/config.js';
+import { resolve } from 'node:path';
+import { parseEnv } from '../src/config.js';
 
-const sdb = new Database(config.structureDb, { readonly: true });
+const cfg = parseEnv(process.env);
+const structureDb = resolve(cfg.dataRoot, 'structure.db');
+const sdb = new Database(structureDb, { readonly: true });
 
 const forums = sdb
   .prepare(`SELECT id, node_key, name FROM nodes WHERE type='forum' ORDER BY id`)

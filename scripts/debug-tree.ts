@@ -4,10 +4,13 @@
  * has a bug.
  */
 import Database from 'better-sqlite3';
-import { config } from '../src/config.js';
-import { withSession, closeDriver } from '../src/graph/driver.js';
+import { resolve } from 'node:path';
+import { parseEnv } from '../src/config.js';
+import { createDriver } from '../src/graph/driver.js';
 
-const sdb = new Database(config.structureDb, { readonly: true });
+const cfg = parseEnv(process.env);
+const driver = createDriver(cfg.neo4j);
+const sdb = new Database(resolve(cfg.dataRoot, 'structure.db'), { readonly: true });
 
 const forums = sdb
   .prepare(`SELECT id, name FROM nodes WHERE type='forum' ORDER BY id`)
@@ -31,7 +34,7 @@ async function main() {
   }
 
   console.log('\n=== Neo4j: 乡亲乡爱 reachable subtree ===');
-  await withSession(async (s) => {
+  await driver.withSession(async (s) => {
     const q = await s.run(`
       MATCH (f:Forum {name:'乡亲乡爱'})-[:HAS_CHILD*0..3]->(n)
       RETURN labels(n) AS labels, n.node_id AS nid, n.name AS name
@@ -43,7 +46,7 @@ async function main() {
   });
 
   console.log('\n=== Neo4j: who points at game boards (Warcraft etc.) ===');
-  await withSession(async (s) => {
+  await driver.withSession(async (s) => {
     const q = await s.run(`
       MATCH (p)-[:HAS_CHILD]->(b:Board)
       WHERE b.name IN ['魔兽世界', 'Diablo', 'StarCraft', 'CounterStrike', 'WarCraft3']
@@ -55,7 +58,7 @@ async function main() {
   });
 
   console.log('\n=== Neo4j: forums each level-2/3 board is reachable from ===');
-  await withSession(async (s) => {
+  await driver.withSession(async (s) => {
     const q = await s.run(`
       MATCH (f:Forum)-[:HAS_CHILD*]->(b:Board)
       WHERE b.level >= 2
@@ -73,4 +76,4 @@ async function main() {
   sdb.close();
 }
 
-main().catch((e) => { console.error(e); process.exitCode = 1; }).finally(() => closeDriver());
+main().catch((e) => { console.error(e); process.exitCode = 1; }).finally(() => driver.close());
