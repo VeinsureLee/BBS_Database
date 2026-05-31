@@ -14,7 +14,8 @@
  *   - We use `url` as Neo4j Thread key and store is_pinned as a boolean property.
  */
 import { readBoardsWithDb, readThreadsForBoard, type ThreadRow } from '../sqlite/reader.js';
-import { withSession } from './driver.js';
+import type { DriverHandle } from './driver.js';
+import { withSession as legacyWithSession } from './driver.js';
 
 export interface SyncStats {
   boards_scanned: number;
@@ -35,7 +36,12 @@ function yearMonthOf(posted_at: string | null): string | null {
   return ym;
 }
 
-export async function syncAllThreads(): Promise<SyncStats> {
+export interface SyncDeps {
+  driver: DriverHandle;
+  // future: sqlite: SqliteReader（Task 14）
+}
+
+export async function syncAllThreads(deps?: SyncDeps): Promise<SyncStats> {
   const boards = readBoardsWithDb();
   const stats: SyncStats = {
     boards_scanned: boards.length,
@@ -47,7 +53,11 @@ export async function syncAllThreads(): Promise<SyncStats> {
   };
   const monthsSeen = new Set<string>();
 
-  await withSession(async (s) => {
+  const runIn = deps
+    ? <T>(fn: (s: import('neo4j-driver').Session) => Promise<T>) => deps.driver.withSession(fn)
+    : legacyWithSession;
+
+  await runIn(async (s) => {
     for (const board of boards) {
       const threads = readThreadsForBoard(board);
       if (threads.length === 0) continue;
